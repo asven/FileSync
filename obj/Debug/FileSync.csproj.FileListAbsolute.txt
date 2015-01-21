@@ -1,0 +1,12 @@
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.exe.config
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.mdf
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync_log.ldf
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.exe
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.pdb
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\SubSonic.Core.dll
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.csprojResolveAssemblyReference.cache
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.Form1.resources
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.Properties.Resources.resources
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.csproj.GenerateResource.Cache
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.exe
+C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.pdb
