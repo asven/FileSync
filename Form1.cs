@@ -51,6 +51,8 @@ namespace FileSync
             }
         }
 
+        #region Event Methods
+
         private void CurrentSyncsGridView_CellClick(object sender, System.Windows.Forms.DataGridViewCellEventArgs e)
         {
             if (CurrentSyncsGridView.Columns[e.ColumnIndex].Name == "DeleteButton")
@@ -64,7 +66,7 @@ namespace FileSync
         private void SourceBrowseButton_Click(object sender, EventArgs e)
         {
             DialogResult result = folderBrowserDialog1.ShowDialog();
-            if(result == DialogResult.OK)
+            if (result == DialogResult.OK)
             {
                 SourceTextBox.Text = folderBrowserDialog1.SelectedPath;
             }
@@ -93,10 +95,32 @@ namespace FileSync
             BindCurrentSyncsGrid();
         }
 
+        private void StartSyncButton_Click(object sender, EventArgs e)
+        {
+            List<Sync> syncs = repo.All<Sync>().ToList();
+
+            foreach (Sync sync in syncs)
+            {
+                SourceRoot = sync.Source.Trim();
+                DestinationRoot = sync.Destination.Trim();
+
+                syncBackgroundWorker = new BackgroundWorker();
+                syncBackgroundWorker.DoWork += syncBackgroundWorker_DoWork;
+                syncBackgroundWorker.ProgressChanged += syncBackgroundWorker_ProgressChanged;
+                syncBackgroundWorker.WorkerReportsProgress = true;
+                syncBackgroundWorker.RunWorkerCompleted += syncBackgroundWorker_RunWorkerCompleted;
+                syncBackgroundWorker.RunWorkerAsync();
+            }
+        }
+
+        #endregion Event Methods
+
+        #region Main Work Methods
+
         private void PerformFileOperations()
         {
             int i = 0;
-            
+
             List<FileOperation> successfulOperations = new List<FileOperation>();
 
             foreach (FileOperation fileOperation in FileOperations.OrderBy(fo => fo.FileActionType.GetHashCode()))
@@ -126,82 +150,19 @@ namespace FileSync
             }
         }
 
-        private void StartSyncButton_Click(object sender, EventArgs e)
-        {
-            List<Sync> syncs = repo.All<Sync>().ToList();
-
-            foreach (Sync sync in syncs)
-            {
-                SourceRoot = sync.Source.Trim();
-                DestinationRoot = sync.Destination.Trim();
-
-                syncBackgroundWorker = new BackgroundWorker();
-                syncBackgroundWorker.DoWork += syncBackgroundWorker_DoWork;
-                syncBackgroundWorker.ProgressChanged += syncBackgroundWorker_ProgressChanged;
-                syncBackgroundWorker.WorkerReportsProgress = true;
-                syncBackgroundWorker.RunWorkerCompleted += syncBackgroundWorker_RunWorkerCompleted;
-                syncBackgroundWorker.RunWorkerAsync();
-                
-            }
-
-
-        }
-
-        void syncBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            StartSync(string.Empty);
-        }
-
-        void syncBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            statusLabel.Text = "Starting Sync";
-
-            backgroundWorker = new BackgroundWorker();
-
-            backgroundWorker.DoWork += backgroundWorker_DoWork;
-            backgroundWorker.ProgressChanged += backgroundWorker_ProgressChanged;
-            backgroundWorker.WorkerReportsProgress = true;
-            backgroundWorker.RunWorkerCompleted += backgroundWorker_RunWorkerCompleted;
-            backgroundWorker.RunWorkerAsync();   
-        }
-
-        void syncBackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            
-        }
-
-        void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            statusLabel.Text = "Sync Finished";
-        }
-
-        void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            Tuple<int, int> progressInfo = e.UserState as Tuple<int, int>;
-            int currentOperationNumber = progressInfo.Item1;
-            int totalOperations = progressInfo.Item2;
-
-            progressBar.Value = (int)(Convert.ToDouble(currentOperationNumber) / Convert.ToDouble(totalOperations) * 100);
-
-            statusLabel.Text = string.Format("Syncing {0} of {1}", currentOperationNumber, totalOperations);
-        }
-
-        void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            PerformFileOperations();
-        }
-
-
 
         private void StartSync(string source)
         {
             foreach (var directory in Directory.GetDirectories(SourceRoot + source))
             {
-                if(!Directory.Exists(directory.Replace(SourceRoot, DestinationRoot)))
+                if (!Directory.Exists(directory.Replace(SourceRoot, DestinationRoot)))
                 {
                     FileOperations.Add(new FileOperation() { DestinationPath = directory.Replace(SourceRoot, DestinationRoot), FileActionType = Enumerations.Enumeration.ActionType.CreateDirectory, SourcePath = string.Empty });
+                    
                 }
                 StartSync(directory.Replace(SourceRoot, string.Empty));
+
+                syncBackgroundWorker.ReportProgress(0, directory.Replace(SourceRoot, DestinationRoot));
             }
 
             foreach (var file in Directory.GetFiles(SourceRoot + source))
@@ -213,9 +174,9 @@ namespace FileSync
                 else
                 {
                     byte[] sourceFileHash, destinationFileHash;
-                    using(var md5 = MD5.Create())
+                    using (var md5 = MD5.Create())
                     {
-                        using(var stream = File.OpenRead(file))
+                        using (var stream = File.OpenRead(file))
                         {
                             sourceFileHash = md5.ComputeHash(stream);
                         }
@@ -233,21 +194,76 @@ namespace FileSync
 
                     for (int i = 0; i < sourceFileHash.Length; i++)
                     {
-                        if(sourceFileHash[i] != destinationFileHash[i])
+                        if (sourceFileHash[i] != destinationFileHash[i])
                         {
                             fileChanged = true;
                             break;
                         }
                     }
 
-                    if(fileChanged)
-                    { 
+                    if (fileChanged)
+                    {
                         FileOperations.Add(new FileOperation() { DestinationPath = file.Replace(SourceRoot, DestinationRoot), FileActionType = Enumerations.Enumeration.ActionType.Update, SourcePath = file });
                     }
+
+                    syncBackgroundWorker.ReportProgress(0, "Checking " + file.Replace(SourceRoot, DestinationRoot));
 
                 }
             }
         }
 
+
+        #endregion Main Work Methods
+
+        #region File Operation Async Methods
+
+        void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            PerformFileOperations();
+        }
+
+        void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            Tuple<int, int> progressInfo = e.UserState as Tuple<int, int>;
+            int currentOperationNumber = progressInfo.Item1;
+            int totalOperations = progressInfo.Item2;
+
+            progressBar.Value = (int)(Convert.ToDouble(currentOperationNumber) / Convert.ToDouble(totalOperations) * 100);
+
+            statusLabel.Text = string.Format("Syncing {0} of {1}", currentOperationNumber, totalOperations);
+        }
+
+        void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            statusLabel.Text = "Sync Finished";
+        }
+
+        #endregion File Operation Async Methods
+
+        #region Sync Operation Async Methods
+        void syncBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            StartSync(string.Empty);
+        }
+
+        void syncBackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            statusLabel.Text = e.UserState.ToString();
+        }
+
+        void syncBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            statusLabel.Text = "Starting Sync";
+
+            backgroundWorker = new BackgroundWorker();
+
+            backgroundWorker.DoWork += backgroundWorker_DoWork;
+            backgroundWorker.ProgressChanged += backgroundWorker_ProgressChanged;
+            backgroundWorker.WorkerReportsProgress = true;
+            backgroundWorker.RunWorkerCompleted += backgroundWorker_RunWorkerCompleted;
+            backgroundWorker.RunWorkerAsync();
+        }
+
+        #endregion Sync Operation Async Methods
     }
 }

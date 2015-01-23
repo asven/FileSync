@@ -2,6 +2,7 @@
 Thumbs.db
 ehthumbs.db
 *.mdf
+*.ldf
 *.config
 # Folder config file
 Desktop.ini
