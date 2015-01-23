@@ -24,14 +24,12 @@ namespace FileSync
         private string SourceRoot = string.Empty;
         private string DestinationRoot = string.Empty;
         BackgroundWorker backgroundWorker = new BackgroundWorker();
+        BackgroundWorker syncBackgroundWorker = new BackgroundWorker();
 
 
         public Form1()
         {
-            InitializeComponent();
-
-
-            //SWebRequest request = WebRequest.Create("https://www.googleapis.com/storage/v1");
+            InitializeComponent();            
 
             BindCurrentSyncsGrid();
 
@@ -137,19 +135,39 @@ namespace FileSync
                 SourceRoot = sync.Source.Trim();
                 DestinationRoot = sync.Destination.Trim();
 
-                StartSync(string.Empty);
+                syncBackgroundWorker = new BackgroundWorker();
+                syncBackgroundWorker.DoWork += syncBackgroundWorker_DoWork;
+                syncBackgroundWorker.ProgressChanged += syncBackgroundWorker_ProgressChanged;
+                syncBackgroundWorker.WorkerReportsProgress = true;
+                syncBackgroundWorker.RunWorkerCompleted += syncBackgroundWorker_RunWorkerCompleted;
+                syncBackgroundWorker.RunWorkerAsync();
+                
             }
 
 
+        }
+
+        void syncBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            StartSync(string.Empty);
+        }
+
+        void syncBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
             statusLabel.Text = "Starting Sync";
 
             backgroundWorker = new BackgroundWorker();
-            
+
             backgroundWorker.DoWork += backgroundWorker_DoWork;
             backgroundWorker.ProgressChanged += backgroundWorker_ProgressChanged;
             backgroundWorker.WorkerReportsProgress = true;
             backgroundWorker.RunWorkerCompleted += backgroundWorker_RunWorkerCompleted;
             backgroundWorker.RunWorkerAsync();   
+        }
+
+        void syncBackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            
         }
 
         void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
