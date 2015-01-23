@@ -21,8 +21,6 @@ namespace FileSync
     {
         private SubSonic.Repository.SimpleRepository repo = new SubSonic.Repository.SimpleRepository("SYNC");
         private List<FileOperation> FileOperations = new List<FileOperation>();
-        private string SourceRoot = string.Empty;
-        private string DestinationRoot = string.Empty;
         BackgroundWorker backgroundWorker = new BackgroundWorker();
         BackgroundWorker syncBackgroundWorker = new BackgroundWorker();
 
@@ -101,16 +99,30 @@ namespace FileSync
 
             foreach (Sync sync in syncs)
             {
-                SourceRoot = sync.Source.Trim();
-                DestinationRoot = sync.Destination.Trim();
+                int numberOfThingsToCheck = CruiseDirectoriesAndGetCounts(sync.Source);
 
                 syncBackgroundWorker = new BackgroundWorker();
                 syncBackgroundWorker.DoWork += syncBackgroundWorker_DoWork;
                 syncBackgroundWorker.ProgressChanged += syncBackgroundWorker_ProgressChanged;
                 syncBackgroundWorker.WorkerReportsProgress = true;
                 syncBackgroundWorker.RunWorkerCompleted += syncBackgroundWorker_RunWorkerCompleted;
-                syncBackgroundWorker.RunWorkerAsync();
+                syncBackgroundWorker.RunWorkerAsync(new Tuple<string, string, int>(sync.Source.Trim(), sync.Destination.Trim(), numberOfThingsToCheck));
             }
+        }
+
+        private int CruiseDirectoriesAndGetCounts(string path)
+        {
+            int count = 0;
+            foreach (var directory in Directory.GetDirectories(path))
+            {
+                count += CruiseDirectoriesAndGetCounts(directory);
+            }
+
+            foreach (var file in Directory.GetFiles(path))
+            {
+                count++;
+            }
+            return count;
         }
 
         #endregion Event Methods
@@ -151,25 +163,24 @@ namespace FileSync
         }
 
 
-        private void StartSync(string source)
+        private int StartSync(string source, string sourceRoot, string destinationRoot, int totalNumberOfFiles)
         {
-            foreach (var directory in Directory.GetDirectories(SourceRoot + source))
+            int numberOfFilesProcessed = 0;
+            foreach (var directory in Directory.GetDirectories(sourceRoot + source))
             {
-                if (!Directory.Exists(directory.Replace(SourceRoot, DestinationRoot)))
+                if (!Directory.Exists(directory.Replace(sourceRoot, destinationRoot)))
                 {
-                    FileOperations.Add(new FileOperation() { DestinationPath = directory.Replace(SourceRoot, DestinationRoot), FileActionType = Enumerations.Enumeration.ActionType.CreateDirectory, SourcePath = string.Empty });
+                    FileOperations.Add(new FileOperation() { DestinationPath = directory.Replace(sourceRoot, destinationRoot), FileActionType = Enumerations.Enumeration.ActionType.CreateDirectory, SourcePath = string.Empty });
                     
                 }
-                StartSync(directory.Replace(SourceRoot, string.Empty));
-
-                syncBackgroundWorker.ReportProgress(0, directory.Replace(SourceRoot, DestinationRoot));
+                numberOfFilesProcessed += StartSync(directory.Replace(sourceRoot, string.Empty), sourceRoot, destinationRoot, totalNumberOfFiles);
             }
 
-            foreach (var file in Directory.GetFiles(SourceRoot + source))
+            foreach (var file in Directory.GetFiles(sourceRoot + source))
             {
-                if (!File.Exists(file.Replace(SourceRoot, DestinationRoot)))
+                if (!File.Exists(file.Replace(sourceRoot, destinationRoot)))
                 {
-                    FileOperations.Add(new FileOperation() { DestinationPath = file.Replace(SourceRoot, DestinationRoot), FileActionType = Enumerations.Enumeration.ActionType.CopyFile, SourcePath = file });
+                    FileOperations.Add(new FileOperation() { DestinationPath = file.Replace(sourceRoot, destinationRoot), FileActionType = Enumerations.Enumeration.ActionType.CopyFile, SourcePath = file });
                 }
                 else
                 {
@@ -184,7 +195,7 @@ namespace FileSync
 
                     using (var md5 = MD5.Create())
                     {
-                        using (var stream = File.OpenRead(file.Replace(SourceRoot, DestinationRoot)))
+                        using (var stream = File.OpenRead(file.Replace(sourceRoot, destinationRoot)))
                         {
                             destinationFileHash = md5.ComputeHash(stream);
                         }
@@ -203,13 +214,15 @@ namespace FileSync
 
                     if (fileChanged)
                     {
-                        FileOperations.Add(new FileOperation() { DestinationPath = file.Replace(SourceRoot, DestinationRoot), FileActionType = Enumerations.Enumeration.ActionType.Update, SourcePath = file });
+                        FileOperations.Add(new FileOperation() { DestinationPath = file.Replace(sourceRoot, destinationRoot), FileActionType = Enumerations.Enumeration.ActionType.Update, SourcePath = file });
                     }
 
-                    syncBackgroundWorker.ReportProgress(0, "Checking " + file.Replace(SourceRoot, DestinationRoot));
-
+                    numberOfFilesProcessed++;
+                    syncBackgroundWorker.ReportProgress(0, new Tuple<string, int, int>("Checking " + file.Replace(sourceRoot, destinationRoot), numberOfFilesProcessed, totalNumberOfFiles));
+                    Thread.Sleep(1000);
                 }
             }
+            return numberOfFilesProcessed;
         }
 
 
@@ -243,12 +256,19 @@ namespace FileSync
         #region Sync Operation Async Methods
         void syncBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            StartSync(string.Empty);
+            Tuple<string, string, int> sourceAndDestinationPaths = e.Argument as Tuple<string, string, int>;
+
+
+            StartSync(string.Empty, sourceAndDestinationPaths.Item1, sourceAndDestinationPaths.Item2, sourceAndDestinationPaths.Item3);
         }
 
         void syncBackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-            statusLabel.Text = e.UserState.ToString();
+            Tuple<string, int, int> progressInfo = e.UserState as Tuple<string, int, int>;
+
+            statusLabel.Text = progressInfo.Item2 + " of " + progressInfo.Item3 + " Checking " + progressInfo.Item1;
+
+            progressBar.Value = (int)(Convert.ToDouble(progressInfo.Item2) / Convert.ToDouble(progressInfo.Item3));
         }
 
         void syncBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
