@@ -13,3 +13,12 @@ C:\Users\sveaa01\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSy
 C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.exe.config
 C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.exe
 C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.pdb
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.mdf
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync_log.ldf
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.exe
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\FileSync.pdb
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\bin\Debug\SubSonic.Core.dll
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.csprojResolveAssemblyReference.cache
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.Form1.resources
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.Properties.Resources.resources
+C:\Users\Jenny\Documents\Visual Studio 2013\Projects\FileSync\obj\Debug\FileSync.csproj.GenerateResource.Cache
