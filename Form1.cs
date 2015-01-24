@@ -219,7 +219,6 @@ namespace FileSync
 
                     numberOfFilesProcessed++;
                     syncBackgroundWorker.ReportProgress(0, new Tuple<string, int, int>("Checking " + file.Replace(sourceRoot, destinationRoot), numberOfFilesProcessed, totalNumberOfFiles));
-                    Thread.Sleep(1000);
                 }
             }
             return numberOfFilesProcessed;
